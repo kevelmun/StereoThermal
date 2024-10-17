@@ -1,3 +1,9 @@
 opencv-contrib-python
 pypylon
 Pillow
+numpy
+matplotlib
+kornia>=0.6.11
+metrics
+python-fusion
+scikit-image

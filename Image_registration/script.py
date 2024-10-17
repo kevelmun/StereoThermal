@@ -14,17 +14,9 @@ from scipy.stats import entropy
 from scipy import ndimage
 from skimage.metrics import normalized_mutual_information
 
-from fusion import TIF
-from metrics import metricsMutinf
-from metrics import metricsPsnr
-from metrics import metricsEdge_intensity
-from metrics import metricsRmse
-from metrics import metricsSsim
-from metrics import metricsQcb
-from metrics import metricsQcv
+
 
 from skimage.metrics import structural_similarity as ssim
-from skimage import filters
 import time
 
 from skimage.metrics import structural_similarity as ssim
@@ -66,27 +58,21 @@ for extractor_str in extractor_str_list:
 
     reg_images="visible" #visible, thermal     
     cal_metrics=True
-    dataset = "01"
-    root = '../../Datasets/Dataset02Rafael_reg'
-    #root = '../../Datasets/FLIR_TEST' 
-    #root = 'C:/Respaldo/Henry/Datasets/M3FD_Fusion' 
+    root = "../captures"
 
-    root_1 = root+'/'+dataset
-    type_data="visible"
+    root_1 = root+'/'
+    type_data="visible/left"
     suffix_thermal="th"
-    suffix_visible="vis"
-    extension_vis = ".bmp"
-    extension_th  = ".bmp"
-    extension_reg = ".bmp"
+    suffix_visible="visible"
+    extension_vis = ".png"
+    extension_th  = ".png"
+    extension_reg = ".png"
     method="reg_lightglue_"+extractor_str+"_vis"
 
     os.makedirs(root_1+"/"+method+"/", exist_ok=True)
     os.makedirs(root_1+"/"+method+"/combined/", exist_ok=True)
     #os.makedirs(root_1+"/reg_lightglue_ad/", exist_ok=True)
     #os.makedirs(root_1+"/tmp/", exist_ok=True)
-
-    archi1=open(root_1+"/"+method+"/time.csv","w") 
-    archi1.write("image;time\n") 
 
     root_ = root_1+"/"+type_data+"/"
     list_image_path = []
@@ -99,7 +85,7 @@ for extractor_str in extractor_str_list:
            
         if type_data=="thermal":
             name_image=name_image.replace(suffix_thermal,"")
-        elif type_data=="visible":
+        elif "visible" in type_data:
             name_image=name_image.replace(suffix_visible,"")
         name_image=name_image.replace(extension_vis,"")
         print("name_image: ",name_image)
@@ -252,182 +238,3 @@ for extractor_str in extractor_str_list:
             
         fin = time.time()
         print("Elapsed time: "+str(fin-inicio))
-        archi1.write(name_image+";"+str(fin-inicio)+ "\n") 
-
-    archi1.close()
-
-
-
-
-
-
-"""
-import torch
-import matplotlib.pyplot as plt
-import cv2
-import glob
-import numpy as np
-from torchvision.transforms.functional import resize, to_pil_image
-from torchvision.utils import save_image
-import os
-from scipy.stats import entropy
-from scipy import ndimage
-from skimage.metrics import normalized_mutual_information
-from fusion import TIF
-from metrics import metricsMutinf, metricsPsnr, metricsEdge_intensity, metricsRmse, metricsSsim, metricsQcb, metricsQcv
-from skimage.metrics import structural_similarity as ssim
-from skimage import filters
-import time
-from lightglue import LightGlue, SuperPoint, DISK, SIFT, ALIKED, DoGHardNet
-from lightglue.utils import load_image, rbd
-
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-print("device: ", device)
-
-extractor_str_list = ["aliked"]
-
-for extractor_str in extractor_str_list:
-    if extractor_str == "superpoint":
-        extractor = SuperPoint(max_num_keypoints=2048*2).eval().to(device)
-        matcher = LightGlue(features='superpoint').eval().to(device)
-    elif extractor_str == "disk":
-        extractor = DISK(max_num_keypoints=2048*2).eval().to(device)
-        matcher = LightGlue(features='disk').eval().to(device)
-    elif extractor_str == "sift":
-        extractor = SIFT(max_num_keypoints=2048*2).eval().to(device)
-        matcher = LightGlue(features='sift').eval().to(device)
-    elif extractor_str == "aliked":
-        extractor = ALIKED(max_num_keypoints=2048*2).eval().to(device)
-        matcher = LightGlue(features='aliked').eval().to(device)
-    elif extractor_str == "doghardnet":
-        extractor = DoGHardNet(max_num_keypoints=2048*2).eval().to(device)
-        matcher = LightGlue(features='doghardnet').eval().to(device)
-
-    reg_images = "visible"
-    cal_metrics = True
-    dataset = "01"
-    root = '../../Datasets/Dataset02Rafael_reg'
-    root_1 = root + '/' + dataset
-    type_data = "visible"
-    suffix_thermal = "th"
-    suffix_visible = "vis"
-    extension_vis = ".bmp"
-    extension_th = ".bmp"
-    extension_reg = ".bmp"
-    method = "reg_lightglue_" + extractor_str + "_vis"
-
-    os.makedirs(root_1 + "/" + method + "/", exist_ok=True)
-    os.makedirs(root_1 + "/" + method + "/combined/", exist_ok=True)
-
-    archi1 = open(root_1 + "/" + method + "/time.csv", "w")
-    archi1.write("image;time\n")
-
-    root_ = root_1 + "/" + type_data + "/"
-    list_image_path = []
-    list_image_path.extend(glob.glob(root_ + '/*' + extension_vis))
-
-    score_threshold = 0.5  # Umbral de filtrado de matches
-
-    for img_path in list_image_path:
-        inicio = time.time()
-        name_image = img_path.replace(root_1 + "/" + type_data + "\\", "")
-        if type_data == "thermal":
-            name_image = name_image.replace(suffix_thermal, "")
-        elif type_data == "visible":
-            name_image = name_image.replace(suffix_visible, "")
-        name_image = name_image.replace(extension_vis, "")
-        print("name_image: ", name_image)
-
-        try:
-            if reg_images == "thermal":
-                image0 = load_image(root_1 + '/thermal/' + name_image + suffix_thermal + extension_th).to(device)
-                image1 = load_image(root_1 + '/visible/' + name_image + suffix_visible + extension_vis).to(device)
-            else:
-                image0 = load_image(root_1 + '/visible/' + name_image + suffix_visible + extension_vis).to(device)
-                image1 = load_image(root_1 + '/thermal/' + name_image + suffix_thermal + extension_th).to(device)
-
-            feats0 = extractor.extract(image0)
-            feats1 = extractor.extract(image1)
-
-            matches01 = matcher({'image0': feats0, 'image1': feats1})
-            feats0, feats1, matches01 = [rbd(x) for x in [feats0, feats1, matches01]]
-
-            matches, scores = matches01["matches"], matches01["scores"]
-            points0 = feats0['keypoints'][matches[..., 0]]
-            points1 = feats1['keypoints'][matches[..., 1]]
-
-            # Filtrar matches según el umbral de score
-            mask = scores >= score_threshold
-            points0 = points0[mask]
-            points1 = points1[mask]
-            scores = scores[mask]
-
-            pts0 = points0.cpu().numpy()
-            pts1 = points1.cpu().numpy()
-
-            M1, _ = cv2.findHomography(pts0, pts1)
-
-            image0_pil = to_pil_image(image0)
-            image1_pil = to_pil_image(image1)
-
-            image0_warped = cv2.warpPerspective(np.array(image0_pil), M1, (image1.shape[2], image1.shape[1]))
-            warped_image0 = torch.tensor(image0_warped).permute(2, 0, 1)
-
-            warped_image0_pil = to_pil_image(warped_image0)
-            warped_image0_tensor = torch.tensor(np.array(warped_image0_pil)).permute(2, 0, 1)
-            warped_image0_tensor = warped_image0_tensor.float() / 255.0
-            warped_image0_tensor = resize(warped_image0_tensor, (480, 640))
-
-            if reg_images == "thermal":
-                save_image(warped_image0_tensor, root_1 + "/" + method + "/" + name_image + suffix_thermal + extension_reg)
-            else:
-                save_image(warped_image0_tensor, root_1 + "/" + method + "/" + name_image + suffix_visible + extension_reg)
-
-            if cal_metrics:
-                fixed_image_np = np.transpose(image0.cpu().detach().numpy(), (1, 2, 0))
-                moving_image_np = np.transpose(image1.cpu().detach().numpy(), (1, 2, 0))
-                result_image_np = np.transpose(warped_image0.cpu().detach().numpy(), (1, 2, 0))
-
-                fig, ax = plt.subplots(1, 3, figsize=(18, 6))
-
-                ax[0].imshow(fixed_image_np)
-                ax[0].set_title('Fixed Image')
-                ax[0].axis('off')
-
-                ax[1].imshow(moving_image_np)
-                ax[1].set_title('Moving Image')
-                ax[1].axis('off')
-
-                ax[0].scatter(points0.cpu().detach().numpy()[:, 0], points0.cpu().detach().numpy()[:, 1], c='r', s=5)
-                ax[1].scatter(points1.cpu().detach().numpy()[:, 0], points1.cpu().detach().numpy()[:, 1], c='r', s=5)
-
-                ax[2].imshow(result_image_np)
-                ax[2].set_title('Result Image')
-                ax[2].axis('off')
-
-                combined_image = np.hstack((fixed_image_np, moving_image_np))
-                plt.figure(figsize=(12, 6))
-                plt.imshow(combined_image)
-                plt.axis('off')
-
-                for i in range(len(points0)):
-                    color = plt.cm.viridis(scores[i])  # Color based on score
-                    plt.plot([points0[i, 0], points1[i, 0] + fixed_image_np.shape[1]], [points0[i, 1], points1[i, 1]], c=color, linewidth=0.5)
-
-                plt.scatter(points0[:, 0], points0[:, 1], c='r', label='Points 0', s=5)
-                plt.scatter(points1[:, 0] + fixed_image_np.shape[1], points1[:, 1], c='r', label='Points 1', s=5)
-
-                plt.savefig(root_1 + '/' + method + '/combined/' + name_image + '_combined.png', bbox_inches='tight', pad_inches=0)
-                plt.close()
-
-        except Exception as err:
-            print(f"Unexpected {err=}, {type(err)=}")
-
-        fin = time.time()
-        print("Elapsed time: " + str(fin - inicio))
-        archi1.write(name_image + ";" + str(fin - inicio) + "\n")
-
-    archi1.close()
-    
-"""
