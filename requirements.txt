@@ -7,3 +7,4 @@ kornia>=0.6.11
 metrics
 python-fusion
 scikit-image
+numpy==1.26.4
