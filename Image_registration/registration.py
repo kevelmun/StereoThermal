@@ -352,7 +352,7 @@ if __name__ == "__main__":
     # Directorios que contienen las imágenes
     path_dir0 = "../captures/rectified/left/"
     path_dir1 = "../captures/thermal/"
-
+    
     # Extensiones de imagen a considerar
     img_extensions = ['*.png', '*.jpg', '*.jpeg', '*.bmp', '*.tiff']
 
