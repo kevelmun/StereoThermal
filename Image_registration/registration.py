@@ -1,3 +1,4 @@
+import PIL
 import torch
 from lightglue import LightGlue, SuperPoint, DISK, SIFT, ALIKED, DoGHardNet, viz2d
 from lightglue.utils import load_image, rbd
@@ -20,7 +21,8 @@ def procesar_imagenes(
     max_num_keypoints=4096,
     dispositivo=None,
     filtro_imagen0=None,  # Nuevo parámetro para aplicar filtros a imagen0
-    filtro_imagen1=None   # Nuevo parámetro para aplicar filtros a imagen1
+    filtro_imagen1=None,  # Nuevo parámetro para aplicar filtros a imagen1
+    threshold= 0
 ):
     """
     Procesa dos imágenes para obtener una imagen resultante tras aplicar la transformación de perspectiva.
@@ -74,6 +76,11 @@ def procesar_imagenes(
         matches01 = matcher({'image0': feats0, 'image1': feats1})
         feats0, feats1, matches01 = [rbd(x) for x in [feats0, feats1, matches01]]
         
+
+        # # Obtener los puntos clave y las correspondencias del primer conjunto
+        # kpts0, kpts1, matches = feats0["keypoints"], feats1["keypoints"], matches01["matches"]
+        # m_kpts0, m_kpts1 = kpts0[matches[..., 0]], kpts1[matches[..., 1]]
+        
         matches, scores = matches01["matches"], matches01["scores"]
         points0 = feats0['keypoints'][matches[..., 0]]
         points1 = feats1['keypoints'][matches[..., 1]]
@@ -81,6 +88,9 @@ def procesar_imagenes(
         pts0 = points0.cpu().numpy()
         pts1 = points1.cpu().numpy()
         
+        if(len(pts0) < threshold):
+                print(f"La imagen no es lo suficientemente precisa, solo posee {len(pts0)} matches")
+                return None
         # Calcular la matriz de homografía
         M, _ = cv2.findHomography(pts0, pts1, cv2.RANSAC, 5.0)
         
@@ -97,18 +107,19 @@ def procesar_imagenes(
             M, 
             (imagen1.shape[2], imagen1.shape[1])
         )
-        imagen0_warped_pil = Image.fromarray(imagen0_warped)
+        # imagen0_warped_pil = Image.fromarray(imagen0_warped)
         
-        # Convertir la imagen warpada a tensor
-        imagen0_warped_tensor = to_tensor(imagen0_warped_pil).to(dispositivo)
+        # # Convertir la imagen warpada a tensor
+        # imagen0_warped_tensor = to_tensor(imagen0_warped_pil).to(dispositivo)
         
-        # Redimensionar la imagen warpada si es necesario
-        imagen0_warped_tensor = resize(imagen0_warped_tensor, (480, 640))
+        # # Redimensionar la imagen warpada si es necesario
+        # imagen0_warped = resize(imagen0_warped, (480, 640))
         
-        # Convertir a PIL para retornar
-        resultado_pil = to_pil_image(imagen0_warped_tensor.cpu())
+        # # Convertir a PIL para retornar
+        # resultado_pil = to_pil_image(imagen0_warped_tensor.cpu())
         
-        return resultado_pil
+        print(f"shape: {imagen0_warped.shape} - Matches: {len(points0)} - Score: {len(scores)}")
+        return imagen0_warped
 
     except Exception as e:
         print(f"Error al procesar las imágenes: {e}")
@@ -257,9 +268,14 @@ def mostrar_correspondencias_mejorada(
         imagen1_np = imagen1.cpu().permute(1, 2, 0).numpy()
         combined_image = np.hstack((imagen0_warped_np, imagen1_np))
         
+        
+        plt.imshow(imagen0_warped_np)
+
+        fusioned_image = cv2.add(imagen0_warped_np, imagen1_np)
+
         # Plotear la imagen combinada
         plt.figure(figsize=(20, 10))
-        plt.imshow(combined_image)
+        plt.imshow(fusioned_image)
         
         # Calcular métricas para el primer conjunto de correspondencias
         total_matches = len(m_kpts0_filtrados)
@@ -349,78 +365,89 @@ def mostrar_correspondencias_mejorada(
 
         
 if __name__ == "__main__":
-    # Directorios que contienen las imágenes
-    path_dir0 = "../captures/rectified/left/"
-    path_dir1 = "../captures/thermal/"
+    # Ruta de las imagenes 
+    img_0 = "../captures/rectified/left/LEFT_visible_20241015_153216.png"
+    img_1 = "../captures/thermal/thermal_20241015_153216.png"
+    # THRESHOLD TESTING
+    img_result = procesar_imagenes(ruta_imagen0=img_0, ruta_imagen1=img_1, threshold=250)
+    imagen0_warped_bgr = cv2.cvtColor(img_result, cv2.COLOR_RGB2BGR)
+    cv2.imshow('Imagen Warpada', imagen0_warped_bgr)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows() 
+
+
+    # # Directorios que contienen las imágenes
+    # path_dir0 = "../captures/rectified/left/"
+    # path_dir1 = "../captures/thermal/"
     
-    # Extensiones de imagen a considerar
-    img_extensions = ['*.png', '*.jpg', '*.jpeg', '*.bmp', '*.tiff']
+    # # Extensiones de imagen a considerar
+    # img_extensions = ['*.png', '*.jpg', '*.jpeg', '*.bmp', '*.tiff']
 
-    # Obtener lista de imágenes en cada directorio
-    images0 = []
-    for ext in img_extensions:
-        images0.extend(glob.glob(os.path.join(path_dir0, ext)))
+    # # Obtener lista de imágenes en cada directorio
+    # images0 = []
+    # for ext in img_extensions:
+    #     images0.extend(glob.glob(os.path.join(path_dir0, ext)))
 
-    images1 = []
-    for ext in img_extensions:
-        images1.extend(glob.glob(os.path.join(path_dir1, ext)))
+    # images1 = []
+    # for ext in img_extensions:
+    #     images1.extend(glob.glob(os.path.join(path_dir1, ext)))
 
-    # Ordenar las listas de imágenes
-    images0.sort()
-    images1.sort()
+    # # Ordenar las listas de imágenes
+    # images0.sort()
+    # images1.sort()
 
-    # Verificar que ambas listas tengan imágenes
-    if not images0:
-        print(f"No se encontraron imágenes en el directorio: {path_dir0}")
-        exit(1)
-    if not images1:
-        print(f"No se encontraron imágenes en el directorio: {path_dir1}")
-        exit(1)
+    # # Verificar que ambas listas tengan imágenes
+    # if not images0:
+    #     print(f"No se encontraron imágenes en el directorio: {path_dir0}")
+    #     exit(1)
+    # if not images1:
+    #     print(f"No se encontraron imágenes en el directorio: {path_dir1}")
+    #     exit(1)
 
-    # Determinar la cantidad mínima de imágenes para evitar errores
-    len0 = len(images0)
-    len1 = len(images1)
-    min_len = min(len0, len1)
+    # # Determinar la cantidad mínima de imágenes para evitar errores
+    # len0 = len(images0)
+    # len1 = len(images1)
+    # min_len = min(len0, len1)
 
-    print(f"Total imágenes en {path_dir0}: {len0}")
-    print(f"Total imágenes en {path_dir1}: {len1}")
-    print(f"Procesando {min_len} pares de imágenes...")
+    # print(f"Total imágenes en {path_dir0}: {len0}")
+    # print(f"Total imágenes en {path_dir1}: {len1}")
+    # print(f"Procesando {min_len} pares de imágenes...")
 
-    # Inicializar índice para el ciclo while
-    index = 0
+    # # Inicializar índice para el ciclo while
+    # index = 0
 
-    while index < min_len:
-        ruta0 = images0[index]
-        ruta1 = images1[index]
+    # while index < min_len:
+    #     ruta0 = images0[index]
+    #     ruta1 = images1[index]
 
-        # Definir filtros para cada imagen (puedes modificar estos valores según tus necesidades)
-        filtro0 = "none"  # Opciones: "grayscale", "hsv", "blur", "contrast", "canny", "none"
-        filtro1 = "none"  # Opciones: "grayscale", "hsv", "blur", "contrast", "canny", "none"
+    #     # Definir filtros para cada imagen (puedes modificar estos valores según tus necesidades)
+    #     filtro0 = "none"  # Opciones: "grayscale", "hsv", "blur", "contrast", "canny", "none"
+    #     filtro1 = "none"  # Opciones: "grayscale", "hsv", "blur", "contrast", "canny", "none"
 
-        # Generar un nombre único para guardar las correspondencias (usando el índice)
-        nombre_guardado = f"correspondencias_{index + 1}.png"
-        ruta_guardado = os.path.join("resultados", nombre_guardado)
+    #     # Generar un nombre único para guardar las correspondencias (usando el índice)
+    #     nombre_guardado = f"correspondencias_{index + 1}.png"
+    #     ruta_guardado = os.path.join("resultados", nombre_guardado)
 
-        print(f"\nProcesando par {index + 1}:")
-        print(f"Imagen0: {ruta0}")
-        print(f"Imagen1: {ruta1}")
-        print(f"Guardando correspondencias en: {ruta_guardado}")
+    #     print(f"\nProcesando par {index + 1}:")
+    #     print(f"Imagen0: {ruta0}")
+    #     print(f"Imagen1: {ruta1}")
+    #     print(f"Guardando correspondencias en: {ruta_guardado}")
 
-        # Llamar a la función para mostrar correspondencias mejoradas
-        mostrar_correspondencias_mejorada(
-            ruta_imagen0=ruta0,
-            ruta_imagen1=ruta1,
-            extractor_tipo="superpoint",
-            max_num_keypoints=2048,
-            umbral_score=0.5,
-            guardar_figura=True,
-            ruta_guardado=ruta_guardado,
-            filtro_imagen0=filtro0,       # Aplicar filtro a imagen0
-            filtro_imagen1=filtro1,       # Aplicar filtro a imagen1
-            mostrar_correspondencias=True, # Activar/desactivar líneas de correspondencia
-            mostrar_metricas=True          # Mostrar/ocultar métricas
-        )
+    #     # Llamar a la función para mostrar correspondencias mejoradas
+    #     mostrar_correspondencias_mejorada(
+    #         ruta_imagen0=ruta0,
+    #         ruta_imagen1=ruta1,
+    #         extractor_tipo="superpoint",
+    #         max_num_keypoints=2048,
+    #         umbral_score=0.5,
+    #         guardar_figura=True,
+    #         ruta_guardado=ruta_guardado,
+    #         filtro_imagen0=filtro0,       # Aplicar filtro a imagen0
+    #         filtro_imagen1=filtro1,       # Aplicar filtro a imagen1
+    #         mostrar_correspondencias=False, # Activar/desactivar líneas de correspondencia
+    #         mostrar_metricas=True          # Mostrar/ocultar métricas
+    #     )
 
-        index += 1
+    #     index += 1
 
-    print("\nProcesamiento completado.")
+    # print("\nProcesamiento completado.")
