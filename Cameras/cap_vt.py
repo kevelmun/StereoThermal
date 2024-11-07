@@ -21,8 +21,10 @@ class VideoCaptureApp:
         self.root.resizable(False, False)
 
         # Crear los objetos de captura de video
+        #IMPORTANT: DEPENDIENDO DE COMO SE CONECTEN LAS CAMARAS
+        # SE DEBERA CAMBIAR EL ID 0,1,2...
         self.cap_visible = cv2.VideoCapture(0)
-        self.cap_thermal = cv2.VideoCapture(2)
+        self.cap_thermal = cv2.VideoCapture(1)
 
         if not self.cap_visible.isOpened():
             print("No se pudo abrir la cámara visible.")
@@ -35,8 +37,15 @@ class VideoCaptureApp:
             return
 
         # Establecer la resolución de la cámara visible a 3840x1080
-        self.cap_visible.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
-        self.cap_visible.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+        # Utilizar esto si se quiere utilziar 1920x1080
+        # self.cap_visible.set(cv2.CAP_PROP_FRAME_WIDTH, 3840)
+        # self.cap_visible.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
+
+        # Establecer la resolución de la cámara visible a 1280x480
+        # Utilizar esto si se quiere utilziar 640x480
+        self.cap_visible.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+        self.cap_visible.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
         # Variables para grabación de video
         self.out_left = None
@@ -140,8 +149,13 @@ class VideoCaptureApp:
 
         # Redimensionar las imágenes para la interfaz, manteniendo el aspect ratio
         # Imágenes visibles (16:9)
-        img_left_pil = img_left_pil.resize((320, 180), Image.LANCZOS)
-        img_right_pil = img_right_pil.resize((320, 180), Image.LANCZOS)
+        # Usar esto si se quiere usar la resolucion de 1920x1080
+        # img_left_pil = img_left_pil.resize((320, 180), Image.LANCZOS)
+        # img_right_pil = img_right_pil.resize((320, 180), Image.LANCZOS)
+
+        #Usar esto si se quiere utilizar la resolucion de 640x480
+        img_left_pil = img_left_pil.resize((320, 240), Image.LANCZOS)
+        img_right_pil = img_right_pil.resize((320, 240), Image.LANCZOS)
 
         # Imagen térmica (4:3)
         img_thermal_pil = img_thermal_pil.resize((320, 240), Image.LANCZOS)
