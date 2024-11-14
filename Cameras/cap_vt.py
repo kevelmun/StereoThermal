@@ -19,13 +19,11 @@ class VideoCaptureApp:
 
         # Hacer que la ventana no sea redimensionable
         self.root.resizable(False, False)
-
         # Crear los objetos de captura de video
         #IMPORTANT: DEPENDIENDO DE COMO SE CONECTEN LAS CAMARAS
         # SE DEBERA CAMBIAR EL ID 0,1,2...
         self.cap_visible = cv2.VideoCapture(0)
         self.cap_thermal = cv2.VideoCapture(1)
-
         if not self.cap_visible.isOpened():
             print("No se pudo abrir la cámara visible.")
             self.root.destroy()
