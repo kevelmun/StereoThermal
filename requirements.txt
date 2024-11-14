@@ -8,3 +8,5 @@ metrics
 python-fusion
 scikit-image
 numpy==1.26.4
+tqdm
+tifffile
