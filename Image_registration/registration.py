@@ -107,6 +107,7 @@ def procesar_imagenes(
             M, 
             (imagen1.shape[2], imagen1.shape[1])
         )
+        
         # imagen0_warped_pil = Image.fromarray(imagen0_warped)
         
         # # Convertir la imagen warpada a tensor
@@ -123,7 +124,7 @@ def procesar_imagenes(
 
     except Exception as e:
         print(f"Error al procesar las imágenes: {e}")
-        return None
+        return None, None
 
 def mostrar_correspondencias_mejorada(
     ruta_imagen0,
@@ -366,14 +367,79 @@ def mostrar_correspondencias_mejorada(
         
 if __name__ == "__main__":
     # Ruta de las imagenes 
-    img_0 = "../captures/rectified/left/LEFT_visible_20241015_153216.png"
-    img_1 = "../captures/thermal/thermal_20241015_153216.png"
+    # SAME RESOLUTION ON RAW IMAGES
+    img_0 = "Cameras/captures/visible/left/LEFT_visible_20241107_163226.png"
+    img_1 = "Cameras/captures/thermal/thermal_20241107_163226.png"
+
+    # # NOT SAME RESOLUTION ON RAW IMAGES
+    # img_0 = "captures/rectified/left/LEFT_visible_20241015_153216.png"
+    # img_1 = "captures/thermal/thermal_20241015_153216.png"
+
+
     # THRESHOLD TESTING
-    img_result = procesar_imagenes(ruta_imagen0=img_0, ruta_imagen1=img_1, threshold=250)
+    img_result = procesar_imagenes(ruta_imagen0=img_0, ruta_imagen1=img_1, threshold=200)
     imagen0_warped_bgr = cv2.cvtColor(img_result, cv2.COLOR_RGB2BGR)
-    cv2.imshow('Imagen Warpada', imagen0_warped_bgr)
+
+
+    # MOSTRAR IMAGEN WARPADA
+    # cv2.imshow('Imagen Warpada', imagen0_warped_bgr)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows() 
+    
+
+    # MOSTAR IMAGEN ORIGINAL TERMICA
+    # img_1 = cv2.imread(img_1, cv2.IMREAD_GRAYSCALE)
+    # # img_1 = cv2.applyColorMap(img_1, cv2.COLORMAP_JET)
+    # cv2.imshow('Imagen Termal', img_1)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows() 
+
+
+    # # MOSTRAR IMAGEN FUSIONADA PARA VER DIFERENCIAS
+    # img_1 = cv2.imread(img_1, cv2.IMREAD_GRAYSCALE)
+    # # Esto es solo para poder funsioanr ambas imagenes
+    # img_1_rgb = cv2.cvtColor(img_1, cv2.COLOR_GRAY2BGR)
+    
+    # if imagen0_warped_bgr.shape != img_1_rgb.shape:
+    #     print("Las resoluciones no son iguales. \nimg0:{imagen0_warped_bgr.shape}\nimg1:{img_1_rgb.shape}")
+        
+        
+    #     img_1_resized = cv2.resize(img_1_rgb, (imagen0_warped_bgr.shape[1], imagen0_warped_bgr.shape[0]))
+
+    # fusioned_image = cv2.add(imagen0_warped_bgr, img_1_rgb)
+    # # img_1 = cv2.applyColorMap(img_1, cv2.COLORMAP_JET)
+    # cv2.imshow('Register Differences', fusioned_image)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows() 
+
+
+    # Leer la imagen original en escala de grises
+    img_1 = cv2.imread(img_1, cv2.IMREAD_GRAYSCALE)
+
+    # Convertir img_1 a una imagen RGB para poder modificar los canales
+    img_1_rgb = cv2.cvtColor(img_1, cv2.COLOR_GRAY2BGR)
+
+    # Redimensionar img_1_rgb para que coincida con las dimensiones de imagen0_warped_bgr
+    img_1_resized = cv2.resize(img_1_rgb, (imagen0_warped_bgr.shape[1], imagen0_warped_bgr.shape[0]))
+
+    # Crear una imagen con solo el canal rojo de img_1
+    img_1_red = img_1_resized.copy()
+    img_1_red[:, :, 0] = 0  # Poner el canal azul a 0
+    img_1_red[:, :, 1] = 0  # Poner el canal verde a 0
+
+    # Asegurar que imagen0_warped_bgr tenga solo el canal azul
+    imagen0_warped_blue = imagen0_warped_bgr.copy()
+    imagen0_warped_blue[:, :, 1] = 0  # Poner el canal verde a 0
+    imagen0_warped_blue[:, :, 2] = 0  # Poner el canal rojo a 0
+
+    # Fusionar ambas imágenes
+    fusioned_image = cv2.add(img_1_red, imagen0_warped_blue)
+
+    # Mostrar la imagen fusionada
+    cv2.imshow('Register Differences', fusioned_image)
     cv2.waitKey(0)
-    cv2.destroyAllWindows() 
+    cv2.destroyAllWindows()
+
 
 
     # # Directorios que contienen las imágenes

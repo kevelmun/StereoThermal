@@ -1,5 +1,6 @@
 import cv2
 import os
+import numpy as np
 from pathlib import Path
 
 def extract_images_from_video(video_path, output_path, start_time, end_time, interval):
@@ -59,7 +60,7 @@ def extract_images_from_video(video_path, output_path, start_time, end_time, int
             break
         
         # Guardar la imagen
-        image_name = output_dir / f"image_{image_num:05d}.jpg"
+        image_name = output_dir / f"image_{image_num:05d}.png"
         cv2.imwrite(str(image_name), frame)
         print(f"Guardado: {image_name}")
         
@@ -72,12 +73,42 @@ def extract_images_from_video(video_path, output_path, start_time, end_time, int
     cap.release()
     print("Extracción de imágenes completada.")
 
-# Ejemplo de uso
+
+def invert_thermal_image(input_path, output_path):
+
+    image = cv2.imread(input_path, cv2.IMREAD_GRAYSCALE)
+     # Invertir la imagen (255 - valor del píxel)
+    invert_image = cv2.bitwise_not(image)
+    # Opcionalmente, guardar la imagen invertida
+    cv2.imwrite(output_path, invert_image)
+
+def process_images_in_directory(input_dir, output_dir, image_extension="jpg"):
+    # Obtener todos los archivos en el directorio de entrada
+    for filename in os.listdir(input_dir):
+        # Filtrar solo los archivos de imagen (.jpg en este caso)
+        if filename.endswith(f".{image_extension}"):
+            input_path = os.path.join(input_dir, filename)
+            # Crear el nombre de la imagen de salida en el directorio de salida
+            output_path = os.path.join(output_dir, filename)
+            
+            # Llamar a la función para invertir la imagen
+            invert_thermal_image(input_path, output_path)
+
 if __name__ == "__main__":
-    video_path = "ruta/al/video.mp4"
-    output_path = "ruta/a/carpeta_de_salida"
+    video_path = "Cameras/captures/video/LEFT_video_20241108_135415.avi"
+    output_path = "Cameras/captures/video_image_extractor_results/left"
     start_time = 10    # en segundos
-    end_time = 50      # en segundos
+    end_time = 100      # en segundos
     interval = 5       # en segundos
-    
     extract_images_from_video(video_path, output_path, start_time, end_time, interval)
+
+    video_path = "Cameras/captures/video/RIGHT_video_20241108_135415.avi"
+    output_path = "Cameras/captures/video_image_extractor_results/right"
+    extract_images_from_video(video_path, output_path, start_time, end_time, interval)
+
+    video_path = "Cameras/captures/video/THERMAL_video_20241108_135415.avi"
+    output_path = "Cameras/captures/video_image_extractor_results/thermal"
+    extract_images_from_video(video_path, output_path, start_time, end_time, interval)
+    
+
+    process_images_in_directory("Cameras/captures/video_image_extractor_results/thermal","Cameras/captures/video_image_extractor_results/thermal_invert", "png")
