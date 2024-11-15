@@ -1,4 +1,5 @@
 import cv2
+from Cameras.util import process_images_in_directory
 from util import *
 from Image_registration import registration
 import cv2
@@ -48,9 +49,9 @@ if __name__ == "__main__":
     threshold = 200
     
 
-    main(imageFixed=image_0_path, imageMoved=image_1_path, threshold=200)
+    # main(imageFixed=image_0_path, imageMoved=image_1_path, threshold=200)
 
-
+    process_images_in_directory("../CalibrationData/Steven/thermal","../CalibrationData/Steven/thermal_invert", "png")
 
     print("END")
 
