@@ -71,6 +71,7 @@ if __name__ == "__main__":
     color1_images.sort()
     color2_images.sort()
     thermal_images.sort()
+    num_images = min(len(color1_images), len(color2_images), len(thermal_images))
 
 
     # Crear directorios para guardar las imágenes rectificadas si no existen
@@ -79,6 +80,9 @@ if __name__ == "__main__":
     os.makedirs('../CalibrationData/Steven_rectified/thermal', exist_ok=True)
 
     mtx_color1, dist_color1, img_color1 = config_stereo_file['cameraMatrix1'], config_stereo_file['distCoeffs1'], config_stereo_file['imageSize']
+    mtx_color2, dist_color2, img_color2 = config_stereo_file['cameraMatrix2'], config_stereo_file['distCoeffs2'], config_stereo_file['imageSize']
+    mtx_thermal, dist_thermal, img_thermal = config_thermal_file['cameraMatrix2'], config_stereo_file['distCoeffs2'], config_stereo_file['imageSize']
+
 
     # Obtener los mapas de remapeo para las cámaras color
     map1_x, map1_y = cv2.initUndistortRectifyMap(
