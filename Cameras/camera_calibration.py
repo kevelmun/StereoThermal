@@ -115,7 +115,7 @@ ret_thermal, _, _, _, _, R_thermal, T_thermal, _, _ = cv2.stereoCalibrate(
 rect_color1, rect_color2, proj_color1, proj_color2, Q, _, _ = cv2.stereoRectify(
     mtx_color1, dist_color1, mtx_color2, dist_color2, img_color1.shape[::-1], R_color, T_color)
 
-rect_thermal, rect_color1, proj_thermal, proj_color1, _, _, _ = cv2.stereoRectify(
+rect_color1, rect_thermal, proj_color1, proj_thermal, Q , _, _ = cv2.stereoRectify(
     mtx_color1, dist_color1, mtx_thermal, dist_thermal, img_color1.shape[::-1], R_thermal, T_thermal)
 
 # Mostrar resultados clave
@@ -148,11 +148,12 @@ map1_x, map1_y = cv2.initUndistortRectifyMap(
 map2_x, map2_y = cv2.initUndistortRectifyMap(
     mtx_color2, dist_color2, rect_color2, proj_color2, img_color2.shape[::-1], cv2.CV_32FC1)
 
-# Obtener los mapas de remapeo para la cámara térmica y color1
-map_thermal_x, map_thermal_y = cv2.initUndistortRectifyMap(
-    mtx_thermal, dist_thermal, rect_thermal, proj_thermal, img_thermal.shape[::-1], cv2.CV_32FC1)
+# Obtener los mapas de remapeo para la cámara color1 y térmica
 map_color1_x_thermal, map_color1_y_thermal = cv2.initUndistortRectifyMap(
     mtx_color1, dist_color1, rect_color1, proj_color1, img_color1.shape[::-1], cv2.CV_32FC1)
+map_thermal_x, map_thermal_y = cv2.initUndistortRectifyMap(
+    mtx_thermal, dist_thermal, rect_thermal, proj_thermal, img_thermal.shape[::-1], cv2.CV_32FC1)
+
 
 # Procesar y rectificar las imágenes
 for idx in range(num_images):
