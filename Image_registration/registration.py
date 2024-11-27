@@ -21,7 +21,7 @@ def procesar_imagenes(
     ruta_imagen0,
     ruta_imagen1,
     extractor_tipo="superpoint",
-    max_num_keypoints=4096,
+    max_num_keypoints=8192,
     dispositivo=None,
     filtro_imagen0=None,  # Nuevo parámetro para aplicar filtros a imagen0
     filtro_imagen1=None,  # Nuevo parámetro para aplicar filtros a imagen1
@@ -31,8 +31,8 @@ def procesar_imagenes(
     Procesa dos imágenes para obtener una imagen resultante tras aplicar la transformación de perspectiva.
 
     Args:
-        ruta_imagen0 (str): Ruta al primer archivo de imagen.
-        ruta_imagen1 (str): Ruta al segundo archivo de imagen.
+        ruta_imagen0 (str): Ruta al primer archivo de imagen (To be registered).
+        ruta_imagen1 (str): Ruta al segundo archivo de imagen (Fixed).
         extractor_tipo (str, opcional): Tipo de extractor a utilizar. Opciones: "superpoint", "disk", "sift", "aliked", "doghardnet". Por defecto es "superpoint".
         max_num_keypoints (int, opcional): Número máximo de puntos clave a extraer. Por defecto es 4096.
         dispositivo (torch.device, opcional): Dispositivo para ejecutar el modelo. Si es None, se selecciona automáticamente GPU si está disponible.
@@ -91,12 +91,14 @@ def procesar_imagenes(
         
         pts0 = points0.cpu().numpy()
         pts1 = points1.cpu().numpy()
-        
+
+
+
         if(len(pts0) < threshold):
                 print(f"La imagen no es lo suficientemente precisa, solo posee {len(pts0)} matches")
                 return None
         # Calcular la matriz de homografía
-        M, _ = cv2.findHomography(pts0, pts1, cv2.RANSAC, 5.0)
+        M, _ = cv2.findHomography(pts0, pts1, cv2.RANSAC, 5.0) # Este 5 se puede subir hasta 10
         
         if M is None:
             raise ValueError("No se pudo calcular la homografía.")
@@ -112,6 +114,8 @@ def procesar_imagenes(
             (imagen1.shape[2], imagen1.shape[1])
         )
         
+        error = evaluar_homografia(M, pts0, pts1)
+
         # imagen0_warped_pil = Image.fromarray(imagen0_warped)
         
         # # Convertir la imagen warpada a tensor
@@ -126,11 +130,11 @@ def procesar_imagenes(
 
         
         print(f"shape: {imagen0_warped.shape} - Matches: {len(points0)} - Score: {len(scores)}")
-        return imagen0_warped
+        return imagen0_warped, points0, scores, error 
 
     except Exception as e:
         print(f"Error al procesar las imágenes: {e}")
-        return None, None
+        return None, None, None, None
 
 def mostrar_correspondencias_mejorada(
     ruta_imagen0,

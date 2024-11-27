@@ -7,7 +7,7 @@ from Image_registration import registration
 
 import glob
 import os
-
+import matplotlib.pyplot as plt
 # Función para cargar las imágenes desde un directorio
 def cargar_imagenes(path_dir, img_extensions):
     """
@@ -129,8 +129,6 @@ def fusion_images(img_1_path, imagen0_warped_bgr):
     show_image(fusioned_image, 'Register Differences')
     return fusioned_image
 
-
-
 def merge_and_display_differences(image_0: np.ndarray, image_1: np.ndarray):
     """Fusiona dos imágenes y muestra las diferencias."""
     # Convertir la imagen térmica a RGB para que coincida en canales
@@ -147,6 +145,7 @@ def merge_and_display_differences(image_0: np.ndarray, image_1: np.ndarray):
     # Mostrar la imagen fusionada
     show_image(merged_image, 'Registered Differences')
 
+
 def main():
     # Rutas de las imágenes
     image_0_path = "Cameras/captures/thermal/thermal_20241107_163226.png"
@@ -158,8 +157,14 @@ def main():
     
     
     # Procesar las imágenes utilizando el registro
-    image_warped = registration.procesar_imagenes(ruta_imagen0=image_0_path, ruta_imagen1=image_1_path, threshold=threshold)
+    image_warped, matches, reliable_points, error = registration.procesar_imagenes(ruta_imagen0=image_0_path, ruta_imagen1=image_1_path, threshold=threshold)
     
+            
+    # reliable_points = []
+    # for i in range(len(points0)):
+    #     score_tmp = scores[i].item()
+    #     if score_tmp >= 0.75:
+    #         reliable_points.add(scores[i])
     
     # Mostrar la imagen warpada
     # show_image(image_warped, 'Warped Image')

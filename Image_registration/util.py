@@ -1,3 +1,4 @@
+from matplotlib import pyplot as plt
 import numpy as np
 from torchvision.transforms.functional import resize, to_pil_image, to_tensor
 import torchvision.transforms.functional as TF
@@ -156,8 +157,8 @@ def evaluar_homografia(M, pts0, pts1):
 
     Args:
         M (np.ndarray): Matriz de homografía.
-        pts0 (np.ndarray): Puntos en la primera imagen.
-        pts1 (np.ndarray): Puntos correspondientes en la segunda imagen.
+        pts0 (np.ndarray): Puntos en la primera imagen (fixed).
+        pts1 (np.ndarray): Puntos correspondientes en la segunda imagen (wrapped).
 
     Returns:
         float: Error de reproyección medio.
@@ -170,5 +171,4 @@ def evaluar_homografia(M, pts0, pts1):
     pts0_transformed = pts0_transformed[:, :2]
     errores = np.linalg.norm(pts0_transformed - pts1, axis=1)
     return np.mean(errores)
-
 
