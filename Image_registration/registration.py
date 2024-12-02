@@ -69,8 +69,8 @@ def procesar_imagenes(
         imagen1 = load_image(ruta_imagen1).to(dispositivo)
         
         # Aplicar los filtros a cada imagen si se especifica
-        imagen0 = aplicar_filtro(imagen0, filtro_imagen0)
-        imagen1 = aplicar_filtro(imagen1, filtro_imagen1)
+        imagen0 = apply_filter(imagen0, filtro_imagen0)
+        imagen1 = apply_filter(imagen1, filtro_imagen1)
         
         # Extraer características
         feats0 = extractor.extract(imagen0)
@@ -85,37 +85,22 @@ def procesar_imagenes(
         # kpts0, kpts1, matches = feats0["keypoints"], feats1["keypoints"], matches01["matches"]
         # m_kpts0, m_kpts1 = kpts0[matches[..., 0]], kpts1[matches[..., 1]]
         
-        matches, scores = matches01["matches"], matches01["scores"]
-        points0 = feats0['keypoints'][matches[..., 0]]
-        points1 = feats1['keypoints'][matches[..., 1]]
-        
-        pts0 = points0.cpu().numpy()
-        pts1 = points1.cpu().numpy()
+        # imagen0_warped, points0, scores, error = apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
 
+        # imagen0_warped, points0, scores, error = apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
 
+        # imagen0_warped, points0, scores, error = apply_rigid_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
 
-        if(len(pts0) < threshold):
-                print(f"La imagen no es lo suficientemente precisa, solo posee {len(pts0)} matches")
-                return None
-        # Calcular la matriz de homografía
-        M, _ = cv2.findHomography(pts0, pts1, cv2.RANSAC, 5.0) # Este 5 se puede subir hasta 10
+        # imagen0_warped, points0, scores, error = apply_rigid_transformation_ransac(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
         
-        if M is None:
-            raise ValueError("No se pudo calcular la homografía.")
-        
-        # Convertir tensor de PyTorch a imagen PIL para la transformación
-        imagen0_pil = to_pil_image(imagen0.cpu())
-        imagen1_pil = to_pil_image(imagen1.cpu())
-        
-        # Aplicar la transformación de perspectiva
-        imagen0_warped = cv2.warpPerspective(
-            np.array(imagen0_pil), 
-            M, 
-            (imagen1.shape[2], imagen1.shape[1])
-        )
-        
-        error = evaluar_homografia(M, pts0, pts1)
+        # imagen0_warped, points0, scores, error = apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
 
+        imagen0_warped, points0, scores, error = apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
+
+        # imagen0_warped, points0, scores, error = apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
+        
+
+        
         # imagen0_warped_pil = Image.fromarray(imagen0_warped)
         
         # # Convertir la imagen warpada a tensor
@@ -207,8 +192,8 @@ def mostrar_correspondencias_mejorada(
         imagen1 = load_image(ruta_imagen1).to(dispositivo)
         
         # Aplicar los filtros a cada imagen si se especifica
-        imagen0 = aplicar_filtro(imagen0, filtro_imagen0)
-        imagen1 = aplicar_filtro(imagen1, filtro_imagen1)
+        imagen0 = apply_filter(imagen0, filtro_imagen0)
+        imagen1 = apply_filter(imagen1, filtro_imagen1)
         
         # Extraer características del primer conjunto de imágenes
         feats0 = extractor.extract(imagen0)
@@ -286,7 +271,7 @@ def mostrar_correspondencias_mejorada(
         outliers = total_matches - inliers
         inlier_ratio = inliers / total_matches if total_matches > 0 else 0
         distancia_media = calcular_distancia_media(pts0, pts1)
-        error_reproyeccion = evaluar_homografia(M, pts0, pts1)
+        error_reproyeccion = evaluate_homography(M, pts0, pts1)
         
         # Dibujar las correspondencias del segundo conjunto (post warping)
         if mostrar_correspondencias:

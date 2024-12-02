@@ -46,12 +46,12 @@ if __name__ == "__main__":
     image_0_path = "Cameras/captures/video_image_extractor_results/left/image_00005.png"
     
     # Umbral para el registro
-    threshold = 200
+    threshold = 250
     
 
     # main(imageFixed=image_0_path, imageMoved=image_1_path, threshold=200)
 
-    process_images_in_directory("../CalibrationData/Steven/thermal","../CalibrationData/Steven/thermal_invert", "png")
+    
 
     print("END")
 

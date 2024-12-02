@@ -31,3 +31,4 @@ def mask_channles(image, channels2keep):
     masked_image = np.zeros_like(image)
     masked_image[:,:,channels2keep] = image[:,:,channels2keep]
     return masked_image
+
