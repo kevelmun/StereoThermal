@@ -197,6 +197,58 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    fixed_image_path = "Cameras/captures/visible/left/LEFT_visible_20241107_163226.png"
+    
+    moving_image_path = "Cameras/captures/thermal/THERMAL_20241107_163226.png"
+
+    # Load the image in grayscale
+    image = cv2.imread(fixed_image_path, 1)
+
+    # Apply histogram equalization
+    equalized_image = cv2.equalizeHist(image)
+
+    # Display the original and equalized images
+    plt.figure(figsize=(10, 5))
+    plt.subplot(1, 2, 1)
+    plt.title('Original Image')
+    plt.imshow(image, cmap='gray')
+
+    plt.subplot(1, 2, 2)
+    plt.title('Equalized Image')
+    plt.imshow(equalized_image, cmap='gray')
+
+    plt.show()
+
+    # # Load the images
+    # fixed_image = cv2.imread(fixed_image_path, 1)
+    # moving_image = cv2.imread(moving_image_path, 1)
+
+    # # Detect ORB features and compute descriptors
+    # orb = cv2.ORB_create()
+    # keypoints1, descriptors1 = orb.detectAndCompute(fixed_image, None)
+    # keypoints2, descriptors2 = orb.detectAndCompute(moving_image, None)
+
+    # # Match features using the BFMatcher
+    # bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    # matches = bf.match(descriptors1, descriptors2)
+    # matches = sorted(matches, key=lambda x: x.distance)
+
+    # # Extract location of good matches
+    # points1 = np.zeros((len(matches), 2), dtype=np.float32)
+    # points2 = np.zeros((len(matches), 2), dtype=np.float32)
+
+    # for i, match in enumerate(matches):
+    #     points1[i, :] = keypoints1[match.queryIdx].pt
+    #     points2[i, :] = keypoints2[match.trainIdx].pt
+
+    # # Estimate the transformation matrix
+    # matrix, mask = cv2.estimateAffinePartial2D(points2, points1)
+
+    # # Apply the transformation to the moving image
+    # aligned_image = cv2.warpAffine(moving_image, matrix, (fixed_image.shape[1], fixed_image.shape[0]))
+    
+    # fusion_images(fixed_image_path, aligned_image)
+
 
 
