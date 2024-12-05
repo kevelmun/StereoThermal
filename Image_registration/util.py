@@ -690,4 +690,71 @@ def apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, 
     return imagen0_warped, points0, scores, error
 
 
+import torch.nn.functional as F
 
+def apply_translation_torch(imagen, t_x, t_y):
+    """
+    Aplica una traslación pura a una imagen tensorial usando PyTorch.
+    """
+    _, _, h, w = imagen.shape
+
+    # Crear una transformación afín para solo traslación
+    M = torch.tensor(
+        [[1, 0, t_x / (w / 2)],  # Normalización de las traslaciones a [-1, 1]
+         [0, 1, t_y / (h / 2)]], 
+        dtype=torch.float32, 
+        device=imagen.device
+    ).unsqueeze(0)
+
+    # Crear la cuadrícula para la transformación
+    grid = F.affine_grid(M, imagen.unsqueeze(0).size(), align_corners=False)
+
+    # Aplicar la transformación
+    return F.grid_sample(imagen.unsqueeze(0), grid, align_corners=False).squeeze(0)
+
+def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen1, threshold=50, umbral_puntuacion=0.5):
+    """
+    Aplica una transformación de traslación para registrar imagen0 con respecto a imagen1 usando PyTorch.
+
+    Parámetros:
+    - feats0: Características extraídas de imagen0.
+    - feats1: Características extraídas de imagen1.
+    - matches01: Diccionario con los emparejamientos entre feats0 y feats1.
+    - imagen0: Tensor de PyTorch de la primera imagen (C, H, W).
+    - imagen1: Tensor de PyTorch de la segunda imagen (C, H, W).
+    - threshold: Número mínimo de correspondencias requeridas para proceder.
+    - umbral_puntuacion: Puntuación mínima para considerar emparejamientos válidos.
+
+    Retorna:
+    - imagen0_warped: Imagen resultante después de aplicar la transformación de traslación.
+    """
+    # Extraer los emparejamientos
+    matches = matches01["matches"]
+    scores = matches01["scores"]
+
+    # Obtener los puntos clave correspondientes
+    points0 = feats0['keypoints'][matches[..., 0]]
+    points1 = feats1['keypoints'][matches[..., 1]]
+
+    # Filtrar emparejamientos por puntuación
+    valid_matches = scores > umbral_puntuacion
+    points0 = points0[valid_matches]
+    points1 = points1[valid_matches]
+
+    if len(points0) < threshold:
+        print(f"La imagen no es lo suficientemente precisa, solo posee {len(points0)} matches válidos.")
+        return None
+
+    # Convertir a NumPy
+    pts0 = points0.cpu().numpy().astype(np.float32)
+    pts1 = points1.cpu().numpy().astype(np.float32)
+
+    # Calcular el vector de traslación
+    translations = pts1 - pts0
+    t_x = np.median(translations[:, 0])
+    t_y = np.median(translations[:, 1])
+
+    # Aplicar la traslación con PyTorch
+    imagen0_warped = apply_translation_torch(imagen0, t_x, t_y)
+
+    return imagen0_warped, points0, valid_matches.sum()
