@@ -203,7 +203,7 @@ if __name__ == "__main__":
     moving_image_path = "Cameras/captures/thermal/THERMAL_20241107_163226.png"
 
     # Load the image in grayscale
-    image = cv2.imread(fixed_image_path, 1)
+    image = cv2.imread(fixed_image_path, 0)
 
     # Apply histogram equalization
     equalized_image = cv2.equalizeHist(image)

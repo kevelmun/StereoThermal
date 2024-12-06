@@ -5,6 +5,8 @@ import torchvision.transforms.functional as TF
 from PIL import Image, ImageEnhance,  ImageFilter
 import torch
 import cv2
+import torch.nn.functional as F
+
 
 def apply_filter_grayscale(imagen_tensor):
     """
@@ -153,18 +155,28 @@ def calcular_distancia_media(pts0, pts1):
 
 def evaluate_homography(M, pts0, pts1):
     """
-    Evaluates the homography by calculating the reprojection error.
+    Evalúa la homografía calculando el error de reproyección.
 
-    Args:
-        M (np.ndarray): Homography matrix.
-        pts0 (np.ndarray): Points in the first image (fixed).
-        pts1 (np.ndarray): Corresponding points in the second image (wrapped).
+    Parámetros:
+        M (np.ndarray): Matriz de transformación. Puede ser:
+                        - Homografía completa de tamaño (3, 3)
+                        - Transformación afín/similaridad de tamaño (2, 3)
+        pts0 (np.ndarray): Puntos en la primera imagen (N, 2).
+        pts1 (np.ndarray): Puntos correspondientes en la segunda imagen (N, 2).
 
-    Returns:
-        float: Mean reprojection error.
+    Retorna:
+        float: Error medio de reproyección.
     """
     if M is None:
         return float('inf')
+
+    # Si M es afín (2x3), la convertimos a una matriz 3x3
+    if M.shape == (2, 3):
+        H = np.eye(3, dtype=M.dtype)
+        H[:2, :] = M
+    else:
+        H = M
+
     pts0_homog = np.hstack([pts0, np.ones((pts0.shape[0], 1))])
     pts0_transformed = M.dot(pts0_homog.T).T
     pts0_transformed /= pts0_transformed[:, [2]]
@@ -219,7 +231,7 @@ def apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, thres
     Retorna:
     - imagen0_warped: Imagen resultante después de aplicar la transformación afín.
     """
-
+    
     # Extraer los emparejamientos y las puntuaciones
     matches = matches01["matches"]
     scores = matches01["scores"]
@@ -231,7 +243,7 @@ def apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, thres
     # Convertir los puntos clave a NumPy y asegurarse de que sean float32
     pts0 = points0.cpu().numpy().astype(np.float32)
     pts1 = points1.cpu().numpy().astype(np.float32)
-
+    
     # Verificar si hay suficientes correspondencias
     if len(pts0) < threshold:
         print(f"La imagen no es lo suficientemente precisa, solo posee {len(pts0)} matches")
@@ -244,20 +256,20 @@ def apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, thres
         method=cv2.RANSAC,
         ransacReprojThreshold=5.0
     )
-
+    
     if M is None:
         raise ValueError("No se pudo calcular la transformación afín.")
 
     # Convertir tensores a arrays de NumPy y transponer para obtener (H, W, C)
     imagen0_np = imagen0.cpu().numpy().transpose(1, 2, 0)
     imagen1_np = imagen1.cpu().numpy().transpose(1, 2, 0)
-
+    
     # Asegurarse de que las imágenes sean de tipo uint8
     if imagen0_np.dtype != np.uint8:
         imagen0_np = (imagen0_np * 255).astype(np.uint8)
     if imagen1_np.dtype != np.uint8:
         imagen1_np = (imagen1_np * 255).astype(np.uint8)
-
+    
     # Aplicar la transformación afín
     imagen0_warped = cv2.warpAffine(
         imagen0_np,
@@ -265,7 +277,7 @@ def apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, thres
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = evaluate_homography(M, pts0, pts1)
+    error = 0
     return imagen0_warped, points0, scores, error
 
 def apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=50):
@@ -312,7 +324,7 @@ def apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1,
         M, 
         (imagen1.shape[2], imagen1.shape[1])
     )
-    error = evaluate_homography(M, pts0, pts1)
+    error = 0
     return imagen0_warped, points0, scores, error
 
 
@@ -377,7 +389,7 @@ def apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1,
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = evaluate_homography(M, pts0, pts1)
+    error = 0
     return imagen0_warped, points0, scores, error
 
 
@@ -459,7 +471,7 @@ def apply_rigid_transformation(feats0, feats1, matches01, imagen0, imagen1, thre
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = evaluate_homography(M, pts0, pts1)
+    error = 0
     return imagen0_warped, points0, scores, error
 
 
@@ -532,7 +544,7 @@ def apply_rigid_transformation_ransac(feats0, feats1, matches01, imagen0, imagen
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = evaluate_homography(M, pts0, pts1)
+    error = 0
     return imagen0_warped, points0, scores, error
 
 def estimate_rigid_transform(pts0, pts1):
@@ -609,7 +621,7 @@ def apply_translation_transformation(feats0, feats1, matches01, imagen0, imagen1
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = evaluate_homography(M, pts0, pts1)
+    error = 0
     return imagen0_warped, points0, scores, error
 
 
@@ -686,31 +698,37 @@ def apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, 
         (imagen1_np.shape[1], imagen1_np.shape[0])
     )
 
-    error = evaluate_homography(M, pts0, pts1)
+    error = 0
     return imagen0_warped, points0, scores, error
 
-
-import torch.nn.functional as F
 
 def apply_translation_torch(imagen, t_x, t_y):
     """
     Aplica una traslación pura a una imagen tensorial usando PyTorch.
+    Se asume que `imagen` tiene forma (C, H, W).
     """
-    _, _, h, w = imagen.shape
+    # Extraer las dimensiones correctamente
+    C, H, W = imagen.shape
 
-    # Crear una transformación afín para solo traslación
+    # Crear la matriz de transformación afín (2x3)
     M = torch.tensor(
-        [[1, 0, t_x / (w / 2)],  # Normalización de las traslaciones a [-1, 1]
-         [0, 1, t_y / (h / 2)]], 
-        dtype=torch.float32, 
+        [[1, 0, t_x / (W / 2)],  # Normalizar la traslación a [-1, 1]
+         [0, 1, t_y / (H / 2)]],
+        dtype=torch.float32,
         device=imagen.device
-    ).unsqueeze(0)
+    ).unsqueeze(0)  # Ahora M tiene forma (1, 2, 3)
+
+    # Añadir dimensión de batch a la imagen
+    imagen_4d = imagen.unsqueeze(0)  # (1, C, H, W)
 
     # Crear la cuadrícula para la transformación
-    grid = F.affine_grid(M, imagen.unsqueeze(0).size(), align_corners=False)
+    grid = F.affine_grid(M, imagen_4d.size(), align_corners=False)
 
     # Aplicar la transformación
-    return F.grid_sample(imagen.unsqueeze(0), grid, align_corners=False).squeeze(0)
+    warped = F.grid_sample(imagen_4d, grid, align_corners=False)
+
+    # Remover la dimensión de batch antes de retornar
+    return warped.squeeze(0)
 
 def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen1, threshold=50, umbral_puntuacion=0.5):
     """
@@ -744,7 +762,7 @@ def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen
     if len(points0) < threshold:
         print(f"La imagen no es lo suficientemente precisa, solo posee {len(points0)} matches válidos.")
         return None
-
+    
     # Convertir a NumPy
     pts0 = points0.cpu().numpy().astype(np.float32)
     pts1 = points1.cpu().numpy().astype(np.float32)
@@ -753,8 +771,9 @@ def apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen
     translations = pts1 - pts0
     t_x = np.median(translations[:, 0])
     t_y = np.median(translations[:, 1])
-
+    
     # Aplicar la traslación con PyTorch
     imagen0_warped = apply_translation_torch(imagen0, t_x, t_y)
-
-    return imagen0_warped, points0, valid_matches.sum()
+    error = 0
+    return imagen0_warped, points0, scores, error
+    

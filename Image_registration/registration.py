@@ -25,7 +25,8 @@ def procesar_imagenes(
     dispositivo=None,
     filtro_imagen0=None,  # Nuevo parámetro para aplicar filtros a imagen0
     filtro_imagen1=None,  # Nuevo parámetro para aplicar filtros a imagen1
-    threshold= 0
+    threshold=0,
+    transformation_method="homography"
 ):
     """
     Procesa dos imágenes para obtener una imagen resultante tras aplicar la transformación de perspectiva.
@@ -43,7 +44,7 @@ def procesar_imagenes(
         PIL.Image: Imagen resultante tras la transformación de perspectiva.
         Actualmente se regresa una imagen tipo numpy array en BGR
     """
-    
+    print("Procesando imagenes...")
     # Configurar el dispositivo
     if dispositivo is None:
         dispositivo = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -80,11 +81,29 @@ def procesar_imagenes(
         matches01 = matcher({'image0': feats0, 'image1': feats1})
         feats0, feats1, matches01 = [rbd(x) for x in [feats0, feats1, matches01]]
         
-
+        
         # # Obtener los puntos clave y las correspondencias del primer conjunto
         # kpts0, kpts1, matches = feats0["keypoints"], feats1["keypoints"], matches01["matches"]
         # m_kpts0, m_kpts1 = kpts0[matches[..., 0]], kpts1[matches[..., 1]]
         
+        if transformation_method == "homography":
+            imagen0_warped, points0, scores, error = apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
+        elif transformation_method == "affine":
+            imagen0_warped, points0, scores, error = apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
+        elif transformation_method == "rigid":
+            imagen0_warped, points0, scores, error = apply_rigid_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
+        elif transformation_method == "similarity":
+            imagen0_warped, points0, scores, error = apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
+        elif transformation_method == "translation":
+            imagen0_warped, points0, scores, error = apply_translation_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
+        elif transformation_method == "translation2":
+            imagen0_warped, points0, scores, error = apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
+            imagen0_warped = np.array(to_pil_image(imagen0_warped.cpu()))
+        elif transformation_method == "rigid_ransac":
+            imagen0_warped, points0, scores, error = apply_rigid_transformation_ransac(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
+        elif transformation_method == "translation_ransac":
+            imagen0_warped, points0, scores, error = apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
+
         # imagen0_warped, points0, scores, error = apply_homography_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
 
         # imagen0_warped, points0, scores, error = apply_afin_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
@@ -95,7 +114,7 @@ def procesar_imagenes(
         
         # imagen0_warped, points0, scores, error = apply_similarity_transformation(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
 
-        imagen0_warped, points0, scores, error = apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
+        # imagen0_warped, points0, scores, error = apply_translation_transformation2(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
 
         # imagen0_warped, points0, scores, error = apply_translation_transformation_ransac(feats0, feats1, matches01, imagen0, imagen1, threshold=threshold)
         

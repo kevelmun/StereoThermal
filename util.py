@@ -1,3 +1,5 @@
+from pathlib import Path
+from PIL import Image
 import cv2
 import numpy as np
 
@@ -32,3 +34,42 @@ def mask_channles(image, channels2keep):
     masked_image[:,:,channels2keep] = image[:,:,channels2keep]
     return masked_image
 
+def save_image(image, directory_path, extension='png'):
+    """
+    Saves the given image to the specified directory with a sequential filename.
+
+    Parameters:
+    - image (PIL.Image.Image or numpy.ndarray): The image to save.
+    - directory_path (str or Path): The directory where the image will be saved.
+    - extension (str): The file extension (default is 'png').
+
+    Returns:
+    - Path: The path where the image was saved.
+    """
+    directory = Path(directory_path)
+    directory.mkdir(parents=True, exist_ok=True)  # Create directory if it doesn't exist
+
+    # Initialize the counter
+    counter = 1
+
+    while True:
+        # Construct the filename
+        filename = f"{counter}.{extension}"
+        file_path = directory / filename
+
+        if not file_path.exists():
+            try:
+                if isinstance(image, Image.Image):  # PIL Image
+                    image.save(file_path)
+                elif isinstance(image, (np.ndarray,)):  # OpenCV Image (numpy array)
+                    cv2.imwrite(str(file_path), cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+                else:
+                    raise ValueError("Unsupported image type. Provide a PIL.Image or numpy.ndarray.")
+                
+                print(f"Image saved as '{file_path}'.")
+                return file_path
+            except Exception as e:
+                print(f"Failed to save image: {e}")
+                raise
+        else:
+            counter += 1
